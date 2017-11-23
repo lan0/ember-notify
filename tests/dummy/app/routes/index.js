@@ -13,15 +13,18 @@ export default Ember.Route.extend({
     info: showLevel('info'),
     alert: showLevel('alert'),
     success: showLevel('success'),
-    warning: showLevel('warning')
+    warning: showLevel('warning'),
+    component: showLevel('success', {
+      component: 'foo-bar',
+    }),
   }
 });
 
-function showLevel(level) {
+function showLevel(level, options = {}) {
   return function(model) {
-    var message = {
+    var message = Object.assign(options, {
       closeAfter: Number(model.closeAfter)
-    };
+    });
     message[model.html ? 'html' : 'text'] = model.text;
     this.get('notify').show(level, message);
   };
