@@ -9,6 +9,16 @@
     }}
       {{yield message close}}
     {{/ember-notify/message}}
+  {{else if message.component}}
+    {{#ember-notify/message
+       message=message
+       theme=theme
+       closeAfter=closeAfter
+       class='ember-notify clearfix'
+       as |message close|
+    }}
+      {{component message.component message=message close=close}}
+    {{/ember-notify/message}}
   {{else}}
     {{ember-notify/message
       message=message
