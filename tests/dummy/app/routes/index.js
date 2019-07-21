@@ -1,7 +1,9 @@
-import Ember from 'ember';
+import { inject as service } from '@ember/service';
+import Route from '@ember/routing/route';
 
-export default Ember.Route.extend({
-  notify: Ember.inject.service(),
+export default Route.extend({
+  notify: service(),
+
   model() {
     return {
       text: 'Hello, world!',
@@ -9,6 +11,7 @@ export default Ember.Route.extend({
       html: false
     };
   },
+
   actions: {
     info: showLevel('info'),
     alert: showLevel('alert'),
@@ -26,6 +29,6 @@ function showLevel(level, options = {}) {
       closeAfter: Number(model.closeAfter)
     });
     message[model.html ? 'html' : 'text'] = model.text;
-    this.get('notify').show(level, message);
+    this.notify.show(level, message);
   };
 }

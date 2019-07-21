@@ -1,32 +1,33 @@
-import Ember from 'ember';
-
-export function messages($el) {
-  return $el.find('.ember-notify');
-}
+import RSVP from 'rsvp';
 
 export function observeSequence(obj, prop, seq) {
-  var observed = [];
-  var observer;
-  return new Ember.RSVP.Promise(
-    function(resolve, reject) {
-      obj.addObserver(prop, observer = function() {
-        var expected = seq[observed.length];
-        var val = obj.get(prop);
-        observed.push({
-          value: val,
-          time: new Date()
-        });
-        if (expected !== val) {
-          reject(new Error('Expected ' + seq + ' and got ' + Ember.A(observed).mapBy('value')));
-        }
-        if (observed.length === seq.length) resolve(observed);
+  let observed = [];
+  let observer;
+
+  return new RSVP.Promise((resolve, reject) => {
+    obj.addObserver(prop, observer = function() {
+      let expected = seq[observed.length];
+      let val = obj.get(prop);
+
+      observed.push({
+        value: val,
+        time: new Date()
       });
-    })
-    .finally(() => obj.removeObserver(prop, observer));
+
+      if (expected !== val) {
+        reject(new Error(`Expected ${seq} and got ${observed.map(x => x.value)}`));
+      }
+
+      if (observed.length === seq.length) {
+        resolve(observed);
+      }
+    });
+  })
+  .finally(() => obj.removeObserver(prop, observer));
 }
 
 export function timesSince(observed, start) {
-  return Ember.A(observed).mapBy('time').map(function(date) {
-    return date.getTime() - start.getTime();
-  });
+  return observed
+    .map(x => x.time)
+    .map(x => x.getTime() - start.getTime());
 }

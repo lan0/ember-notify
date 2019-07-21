@@ -1,111 +1,104 @@
-import Ember from 'ember';
+import { isArray } from '@ember/array';
+import { run } from '@ember/runloop';
+import { computed } from '@ember/object';
+import Component from '@ember/component';
 import layout from '../../templates/components/ember-notify/message';
-import Notify from 'ember-notify';
 
-export default Ember.Component.extend({
-  layout: layout,
-  message: {},
+const DEFAULT_MESSAGE = {};
+
+export default Component.extend({
+  layout,
+  message: DEFAULT_MESSAGE,
   closeAfter: null,
+  run: null,
 
   classNameBindings: [
     'message.visible:ember-notify-show:ember-notify-hide', 'radius::', 'themeClassNames',
     'message.classNames'
   ],
+
   attributeBindings: ['data-alert'],
   'data-alert': '',
 
-  run: null,
+  init() {
+    this._super(...arguments);
 
-  init: function() {
-    this._super();
-    // indicate that the message is now being displayed
-    if (this.get('message.visible') === undefined) {
-      // should really be in didInsertElement but Glimmer doesn't allow this
+    // Indicate that the message is now being displayed
+    if (this.message.visible === undefined) {
+      // Should really be in didInsertElement but Glimmer doesn't allow this
       this.set('message.visible', true);
     }
-    this.run = Runner.create({
-      // disable all the scheduling in tests
-      disabled: Ember.testing && !Notify.testing
-    });
-  },
-  didInsertElement: function() {
-    var element = this.get('message.element');
-    if (element) {
-      this.$('.message').append(element);
-    }
-    var closeAfter = this.get('message.closeAfter');
-    if (closeAfter === undefined) closeAfter = this.get('closeAfter');
-    if (closeAfter) {
-      this.run.later(() => this.send('closeIntent'), closeAfter);
-    }
-  },
-  themeClassNames: Ember.computed('theme', 'message.type', function() {
-    var theme = this.get('theme');
-    return theme ? theme.classNamesFor(this.get('message')) : '';
-  }),
-  visibleObserver: Ember.observer('message.visible', function() {
-    if (!this.get('message.visible')) {
-      this.send('closeIntent');
-    }
-  }),
-  isHovering: function() {
-    return this.$().is(':hover');
   },
 
-  actions: {
-    // alias to close action so we can poll whether hover state is active
-    closeIntent: function() {
-      if (this.get('isDestroyed')) return;
-      if (this.isHovering()) {
-        return this.run.later(() => this.send('closeIntent'), 100);
+  didInsertElement() {
+    this._super(...arguments);
+
+    let { closeAfter = this.closeAfter, element } = this.message;
+    if (element) {
+      if (isArray(element)) {
+        // eslint-disable-line ember/no-jquery
+        this.$('.message').append(element);
+      } else {
+        this.element
+          .querySelector('.message')
+          .appendChild(element);
       }
-      // when :hover no longer applies, close as normal
-      this.send('close');
-    },
-    close: function() {
-      if (this.get('message.closed')) return;
+    }
+
+    if (closeAfter) {
+      run.later(() => this.selfClose(), closeAfter);
+    }
+  },
+
+  themeClassNames: computed('theme', 'message.type', function() {
+    return this.theme ? this.theme.classNamesFor(this.message) : '';
+  }),
+
+  actions: {
+    close() {
+      if (this.message.closed) {
+        return;
+      }
+
       this.set('message.closed', true);
       this.set('message.visible', false);
-      var removeAfter = this.get('message.removeAfter') || this.constructor.removeAfter;
+
+      let removeAfter = this.message.removeAfter || this.constructor.removeAfter;
       if (removeAfter) {
-        this.run.later(this, remove, removeAfter);
-      }
-      else {
+        run.later(this, remove, removeAfter);
+      } else {
         remove();
       }
+
       function remove() {
-        var parentView = this.get('parentView');
-        if (this.get('isDestroyed') || !parentView || !parentView.get('messages')) return;
-        parentView.get('messages').removeObject(this.get('message'));
+        if (this.isDestroyed || !this.parentView || !this.parentView.messages) {
+          return;
+        }
+
+        this.parentView.messages.removeObject(this.message);
         this.set('message.visible', null);
       }
     }
+  },
+
+  isHovering() {
+    return this.element.matches
+      ? this.element.matches(':hover')
+      : this.element.msMatchesSelector(':hover');
+  },
+
+  selfClose() {
+    if (this.isDestroyed) {
+      return;
+    }
+
+    if (this.isHovering()) {
+      return run.later(() => this.selfClose(), 100);
+    }
+
+    // When :hover no longer applies, close as normal
+    this.send('close');
   }
 }).reopenClass({
-  removeAfter: 250 // allow time for the close animation to finish
-});
-
-// getting the run loop to do what we want is difficult, hence the Runner...
-var Runner = Ember.Object.extend({
-  init: function() {
-    if (!this.disabled) {
-      // this is horrible but this avoids delays from the run loop
-      this.next = function(ctx, fn) {
-        var args = arguments;
-        setTimeout(function() {
-          Ember.run(function() {
-            fn.apply(ctx, args);
-          });
-        }, 0);
-      };
-      this.later = function() {
-        Ember.run.later.apply(Ember.run, arguments);
-      };
-    }
-    else {
-      this.next = this.later = function zalkoBegone(ctx, fn) {
-        Ember.run.next(ctx, fn);
-      };
-    }
-  }
+  removeAfter: 250 // Allow time for the close animation to finish
 });
