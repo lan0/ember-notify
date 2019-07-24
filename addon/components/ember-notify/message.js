@@ -1,6 +1,6 @@
 import { isArray } from '@ember/array';
 import { run } from '@ember/runloop';
-import { computed } from '@ember/object';
+import { computed, observer } from '@ember/object';
 import Component from '@ember/component';
 import layout from '../../templates/components/ember-notify/message';
 
@@ -29,6 +29,15 @@ export default Component.extend({
       this.set('message.visible', true);
     }
   },
+
+  visibleObserver: observer('message.visible', function () {
+    if (this.message.visible === undefined || this.message.visible === null) {
+      return;
+    }
+    if (!this.message.visible) {
+      this.send('close');
+    }
+  }),
 
   didInsertElement() {
     this._super(...arguments);
