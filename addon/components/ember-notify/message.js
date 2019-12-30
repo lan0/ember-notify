@@ -55,8 +55,19 @@ export default Component.extend({
     }
 
     if (closeAfter) {
+      this.element
+        .querySelector('.ember-notify-progress')
+        .style.transition = `width ${closeAfter}ms linear`;
       run.later(() => this.selfClose(), closeAfter);
     }
+
+    run.next(() => {
+      if (closeAfter) {
+        this.element
+          .querySelector('.ember-notify-progress')
+          .style.width = `100%`;
+      }
+    });
   },
 
   themeClassNames: computed('theme', 'message.type', function() {

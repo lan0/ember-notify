@@ -104,3 +104,13 @@
 .ember-notify-cn .clearfix:after {
   clear: both;
 }
+
+.ember-notify-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 5px;
+  border-bottom: 5px solid;
+  width: 0%;
+  opacity: 0.7;
+}
